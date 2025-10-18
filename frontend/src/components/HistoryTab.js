@@ -8,6 +8,14 @@ const HistoryTab = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const { token, user, login } = useAuth();
+
+  console.log('🔍 Auth Debug:', { 
+  hasToken: !!token, 
+  hasUser: !!user, 
+  user: user,
+  userGithubId: user?.githubId,
+  userGithubIdType: typeof user?.githubId
+});
   
   const loadHistory = useCallback(async () => {
     setLoading(true);
