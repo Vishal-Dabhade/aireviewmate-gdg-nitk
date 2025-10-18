@@ -78,10 +78,10 @@ const HistoryTab = () => {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl blur opacity-50 group-hover:opacity-75 transition-opacity"></div>
             <div className="relative bg-slate-900 border border-cyan-500/30 rounded-xl px-4 py-3 flex items-center gap-3">
               <Sparkles className="w-5 h-5 text-cyan-400" />
-              <div className="text-sm" onClick={login}>
+              <button className="text-sm" onClick={login}>
                 <p className="text-white font-semibold">Want to save your reviews?</p>
                 <p className="text-gray-400 text-xs">Sign in to keep your history</p>
-              </div>
+              </button>
               <LogIn className="w-5 h-5 text-cyan-400 ml-2" />
             </div>
           </div>
