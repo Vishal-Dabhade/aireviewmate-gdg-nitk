@@ -35,22 +35,21 @@ export const AuthProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
- const fetchUser = async () => {
-  try {
-    const decoded = JSON.parse(atob(token.split('.')[1]));
-    const userData = await api.getUserInfo(decoded.login); // Use login instead
-    setUser(userData);
-  } catch (err) {
-    console.error('❌ Failed to fetch user:', err);
-  }
-};
+  const fetchUser = async () => {
+    try {
+      const decoded = JSON.parse(atob(token.split('.')[1]));
+      const userData = await api.getUserInfo(decoded.login);
+      setUser(userData);
+    } catch (err) {
+      console.error('Failed to fetch user:', err);
+    }
+  };
 
   const login = async () => {
     try {
-      const data = await api.githubLogin();
-      window.location.href = data.redirectUri;
+      await api.githubLogin(); // This will redirect automatically
     } catch (err) {
-      console.error('❌ Login failed:', err);
+      console.error('Login failed:', err);
     }
   };
 
@@ -69,5 +68,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// 🔹 Add this at the bottom
+// 🔹 Hook to use auth context
 export const useAuth = () => useContext(AuthContext);
