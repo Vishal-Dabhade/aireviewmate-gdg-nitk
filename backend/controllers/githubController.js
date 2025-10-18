@@ -2,8 +2,8 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 
 exports.githubLogin = (req, res) => {
-  const redirectUri = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.GITHUB_CALLBACK_URL)}&scope=repo,user:email`;
-  res.json({ redirectUri });
+  const authUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.GITHUB_CALLBACK_URL)}&scope=repo,user:email`;
+  res.json({ authUrl });
 };
 
 exports.githubCallback = async (req, res) => {
@@ -33,7 +33,6 @@ exports.githubCallback = async (req, res) => {
     }
     
     const accessToken = tokenResp.data.access_token;
-    
     const userResp = await axios.get('https://api.github.com/user', {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
@@ -44,9 +43,8 @@ exports.githubCallback = async (req, res) => {
       { expiresIn: '7d' }
     );
     
-    // Now redirects to frontend with token
+    // Redirect to frontend with token
     res.redirect(`${process.env.CLIENT_URL}?token=${token}`);
-    
   } catch (error) {
     console.error('GitHub callback error:', error.response?.data || error.message);
     res.redirect(`${process.env.CLIENT_URL}?error=${encodeURIComponent(error.message)}`);
@@ -55,7 +53,6 @@ exports.githubCallback = async (req, res) => {
 
 exports.getUserInfo = async (req, res) => {
   const { username } = req.query;
-  
   if (!username) {
     return res.status(400).json({ error: "Username required" });
   }

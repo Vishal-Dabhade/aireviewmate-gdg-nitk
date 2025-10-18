@@ -20,11 +20,24 @@ const handleResponse = async (response) => {
  */
 const api = {
   /**
-   * 🔹 GitHub Login - starts OAuth process
+   * 🔹 GitHub Login - redirects to GitHub OAuth
    */
   githubLogin: async () => {
-    const response = await fetch(`${API_BASE}/github/login`);
-    return handleResponse(response);
+    try {
+      const response = await fetch(`${API_BASE}/github/login`);
+      const data = await handleResponse(response);
+      
+      // Redirect to GitHub OAuth URL
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+      } else if (data.url) {
+        window.location.href = data.url;
+      }
+      return data;
+    } catch (error) {
+      console.error('GitHub login error:', error);
+      throw error;
+    }
   },
 
   /**
