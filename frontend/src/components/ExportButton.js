@@ -44,10 +44,10 @@ METRICS:
   return (
     <button
       onClick={exportToPDF}
-      className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:shadow-xl hover:shadow-cyan-500/30 transition-all text-sm font-semibold"
+      className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:shadow-xl hover:shadow-cyan-500/30 transition-all text-xs sm:text-sm font-semibold truncate"
     >
-      <Download className="w-4 h-4" />
-      Export Report
+      <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+      <span className="truncate">Export Report</span>
     </button>
   );
 };

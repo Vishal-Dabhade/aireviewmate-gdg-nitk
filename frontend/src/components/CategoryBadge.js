@@ -15,9 +15,11 @@ const CategoryBadge = ({ category }) => {
 
   return (
     <div
-      className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r ${gradient} text-white shadow-lg font-semibold text-sm`}
+      className={`inline-flex items-center gap-2 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 
+                  rounded-full bg-gradient-to-r ${gradient} text-white shadow-lg font-semibold 
+                  text-xs sm:text-sm md:text-base`}
     >
-      <CheckCircle className="w-4 h-4" />
+      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 md:w-4 md:h-4" />
       <span>{category}</span>
     </div>
   );
