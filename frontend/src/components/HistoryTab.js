@@ -2,26 +2,26 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, History, Clock, Trash2, LogIn, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import anonymousReviewService from '../services/anonymousReviewService';
 import CategoryBadge from './CategoryBadge';
 
 const HistoryTab = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const { token, user, login } = useAuth();
-
-  console.log('🔍 Auth Debug:', { 
-  hasToken: !!token, 
-  hasUser: !!user, 
-  user: user,
-  userGithubId: user?.githubId,
-  userGithubIdType: typeof user?.githubId
-});
   
   const loadHistory = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.getReviewHistory(token);
-      setHistory(data.data || []);
+      if (token) {
+        // Logged in: Load from database
+        const data = await api.getReviewHistory(token);
+        setHistory(data.data || []);
+      } else {
+        // Anonymous: Load from localStorage
+        const anonymousReviews = anonymousReviewService.getReviews();
+        setHistory(anonymousReviews);
+      }
     } catch (err) {
       console.error('Failed to load history:', err);
       setHistory([]);
@@ -38,9 +38,17 @@ const HistoryTab = () => {
     if (!window.confirm('Are you sure you want to delete this review?')) return;
     
     try {
-      await api.deleteReview(id, token);
-      setHistory(prev => prev.filter(item => item._id !== id));
-      console.log('✅ Review deleted successfully');
+      if (token) {
+        // Logged in: Delete from database
+        await api.deleteReview(id, token);
+        setHistory(prev => prev.filter(item => item._id !== id));
+        console.log('✅ Review deleted from database');
+      } else {
+        // Anonymous: Delete from localStorage
+        anonymousReviewService.deleteReview(id);
+        setHistory(prev => prev.filter(item => item._id !== id));
+        console.log('✅ Anonymous review deleted from localStorage');
+      }
     } catch (err) {
       console.error('❌ Delete error:', err);
       alert(`Failed to delete: ${err.message}`);
@@ -62,7 +70,11 @@ const HistoryTab = () => {
         <div className="relative bg-slate-950/90 backdrop-blur-xl rounded-2xl border border-slate-800 p-8 sm:p-12 text-center">
           <History className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h3 className="text-lg font-bold text-white mb-2">No Review History</h3>
-          <p className="text-gray-400 text-sm">Your code reviews will appear here</p>
+          <p className="text-gray-400 text-sm">
+            {token 
+              ? 'Your code reviews will appear here' 
+              : 'Submit a code review to see it here (session only)'}
+          </p>
         </div>
       </div>
     );
@@ -73,10 +85,10 @@ const HistoryTab = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 className="text-2xl sm:text-3xl font-black text-white">
-          Review History
+          Review History {!token && <span className="text-sm text-gray-500">(Session Only)</span>}
         </h2>
         
-        {/* Login prompt for non-authenticated users */}
+        {/* Login prompt for anonymous users */}
         {!token && (
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl blur opacity-50 group-hover:opacity-75 transition-opacity"></div>
@@ -84,7 +96,7 @@ const HistoryTab = () => {
               <Sparkles className="w-5 h-5 text-cyan-400" />
               <div className="text-sm">
                 <p className="text-white font-semibold">Want to save your reviews?</p>
-                <p className="text-gray-400 text-xs">Sign in to keep your history</p>
+                <p className="text-gray-400 text-xs">Sign in to keep your history forever</p>
               </div>
               <button onClick={login} className="ml-2">
                 <LogIn className="w-5 h-5 text-cyan-400 hover:text-cyan-300 transition-colors" />
@@ -96,20 +108,8 @@ const HistoryTab = () => {
 
       {/* Review list */}
       {history.map((item) => {
-        // Check if current user owns this review
-        const isOwner = !!(token && user && item.userId && 
-    String(item.userId) === String(user.githubId));
-     console.log('🔍 Review Item Debug:', {
-    reviewId: item._id,
-    itemUserId: item.userId,
-    itemUserIdType: typeof item.userId,
-    userGithubId: user?.githubId,
-    userGithubIdType: typeof user?.githubId,
-    hasToken: !!token,
-    hasUser: !!user,
-    stringComparison: String(item.userId) === String(user?.githubId),
-    isOwner: isOwner
-  });
+        // ✅ Show delete button for ALL reviews (anonymous or logged-in user's own)
+        const canDelete = true;
         
         return (
           <div key={item._id} className="relative group">
@@ -123,6 +123,11 @@ const HistoryTab = () => {
                   <span className="text-sm font-semibold text-cyan-400 bg-cyan-500/10 px-3 py-1.5 rounded-lg border border-cyan-500/30">
                     {item.language}
                   </span>
+                  {item.isAnonymous && (
+                    <span className="text-xs font-semibold text-yellow-400 bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/30">
+                      Session Only
+                    </span>
+                  )}
                 </div>
                 
                 <div className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-0 flex-wrap">
@@ -131,8 +136,8 @@ const HistoryTab = () => {
                     {new Date(item.createdAt).toLocaleDateString()}
                   </span>
                   
-                  {/* Delete button - only show for review owner */}
-                  {isOwner && (
+                  {/* Delete button - show for all reviews in current view */}
+                  {canDelete && (
                     <button 
                       onClick={() => handleDelete(item._id)} 
                       className="text-red-400 hover:text-red-300 p-2 hover:bg-red-500/10 rounded-lg transition-all"

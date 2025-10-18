@@ -8,6 +8,7 @@ import FullScreenReviewModal from './FullScreenReviewModal';
 import { Sparkles } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import anonymousReviewService from '../services/anonymousReviewService';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('review');
@@ -20,26 +21,40 @@ const Dashboard = () => {
 
   const { token } = useAuth();
    
-  const handleReviewCode = async () => {
-    if (!code.trim()) {
-      setError('Please enter some code to review');
-      return;
-    }
+ 
 
-    setLoading(true);
-    setError('');
-    setReview(null);
+const handleReviewCode = async () => {
+  if (!code.trim()) {
+    setError('Please enter some code to review');
+    return;
+  }
 
-    try {
-      const data = await api.reviewCode(code, language, token);
+  setLoading(true);
+  setError('');
+  setReview(null);
+
+  try {
+    const data = await api.reviewCode(code, language, token);
+    
+    // ✅ If anonymous (no token), save to localStorage
+    if (!token) {
+      const savedReview = anonymousReviewService.saveReview({
+        ...data.data,
+        originalCode: code,
+        language: language
+      });
+      setReview(savedReview);
+    } else {
       setReview(data.data);
-      setShowModal(true);
-    } catch (err) {
-      setError(err.message || 'Failed to review code');
-    } finally {
-      setLoading(false);
     }
-  };
+    
+    setShowModal(true);
+  } catch (err) {
+    setError(err.message || 'Failed to review code');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const closeModal = () => setShowModal(false);
 

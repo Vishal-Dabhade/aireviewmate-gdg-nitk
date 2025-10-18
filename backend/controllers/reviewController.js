@@ -1,10 +1,8 @@
 const { reviewCodeWithAI } = require('../services/llmService');
 const Review = require('../models/Review');
 
-// Allowed programming languages
 const ALLOWED_LANGUAGES = ['javascript', 'python', 'java', 'cpp', 'c', 'csharp', 'go', 'rust', 'typescript', 'kotlin', 'dart', 'swift', 'php', 'ruby', 'sql'];
 
-// Helper function to calculate metrics
 function calculateMetrics(code) {
   const lines = code.split('\n').filter(line => line.trim() !== '');
   const linesOfCode = lines.length;
@@ -36,8 +34,8 @@ function calculateMetrics(code) {
 exports.reviewCode = async (req, res, next) => {
   try {
     const { code, language = 'javascript' } = req.body;
+    const userId = req.user?.githubId;
     
-    // Validate code
     if (!code || code.trim().length === 0) {
       return res.status(400).json({ success: false, error: 'Code is required' });
     }
@@ -46,12 +44,10 @@ exports.reviewCode = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Code too long (max 50,000 chars)' });
     }
     
-    // Validate language
     if (!ALLOWED_LANGUAGES.includes(language)) {
       return res.status(400).json({ success: false, error: `Unsupported language. Allowed: ${ALLOWED_LANGUAGES.join(', ')}` });
     }
     
-    // Get AI review
     let reviewResult;
     try {
       reviewResult = await reviewCodeWithAI(code, language);
@@ -60,34 +56,39 @@ exports.reviewCode = async (req, res, next) => {
       return res.status(500).json({ success: false, error: 'Failed to analyze code with AI' });
     }
     
-    // Validate AI response
     if (!reviewResult || !reviewResult.improvedCode || !reviewResult.explanation) {
       return res.status(500).json({ success: false, error: 'Invalid AI response' });
     }
     
-    // Calculate metrics
     const metrics = calculateMetrics(code);
     
-    // Save to database
-    const review = new Review({
-      userId: req.user?.githubId ? String(req.user.githubId) : null, // ✅ CHANGED THIS LINE
-      originalCode: code,
-      improvedCode: reviewResult.improvedCode,
-      explanation: reviewResult.explanation,
-      category: reviewResult.category,
-      language: language,
-      metrics: metrics,
-      createdAt: new Date()
-    });
+    // ✅ CHANGED: Only save to database if user is logged in
+    let savedReview = null;
+    if (userId) {
+      const review = new Review({
+        userId: String(userId),
+        originalCode: code,
+        improvedCode: reviewResult.improvedCode,
+        explanation: reviewResult.explanation,
+        category: reviewResult.category,
+        language: language,
+        metrics: metrics,
+        createdAt: new Date()
+      });
+      
+      savedReview = await review.save();
+    }
     
-    await review.save();
-    
+    // ✅ Return review data (with or without _id)
     res.json({
       success: true,
       data: {
         ...reviewResult,
         metrics,
-        _id: review._id
+        _id: savedReview?._id || null, // null for anonymous
+        originalCode: code,
+        language: language,
+        createdAt: new Date()
       }
     });
   } catch (error) {
@@ -99,15 +100,15 @@ exports.getReviewHistory = async (req, res, next) => {
   try {
     const userId = req.user?.githubId;
     
-    // ✅ Logged in: Show their reviews + anonymous reviews
-    // ✅ Logged out: Show only anonymous reviews (last 20)
-    const query = userId 
-      ? { $or: [{ userId: String(userId) }, { userId: null }] }
-      : { userId: null };
+    if (!userId) {
+      // ✅ CHANGED: Anonymous users get empty array (they manage their own in localStorage)
+      return res.json({ success: true, data: [] });
+    }
     
-    const reviews = await Review.find(query)
+    // ✅ CHANGED: Logged-in users only see their own reviews
+    const reviews = await Review.find({ userId: String(userId) })
       .sort({ createdAt: -1 })
-      .limit(20)
+      .limit(50)
       .select('-__v');
     
     res.json({ success: true, data: reviews });
@@ -121,9 +122,12 @@ exports.deleteReview = async (req, res, next) => {
     const { id } = req.params;
     const userId = req.user?.githubId;
     
-    console.log('🔍 Delete attempt:');
-    console.log('   Review ID:', id);
-    console.log('   User githubId:', userId, '(type:', typeof userId, ')');
+    if (!userId) {
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Must be logged in to delete reviews from database' 
+      });
+    }
     
     const review = await Review.findById(id);
     
@@ -131,36 +135,21 @@ exports.deleteReview = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Review not found' });
     }
     
-    console.log('   Review userId:', review.userId, '(type:', typeof review.userId, ')');
-    console.log('   String comparison:', `"${String(review.userId)}" === "${String(userId)}"`);
-    console.log('   Match result:', String(review.userId) === String(userId));
-    
-    if (review.userId) {
-      if (!userId) {
-        return res.status(403).json({ 
-          success: false, 
-          error: 'This review belongs to a logged-in user. Please sign in to delete it.' 
-        });
-      }
-      
-      if (String(review.userId) !== String(userId)) {
-        console.log('❌ MISMATCH!');
-        return res.status(403).json({ 
-          success: false, 
-          error: 'You can only delete your own reviews' 
-        });
-      }
+    if (String(review.userId) !== String(userId)) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'You can only delete your own reviews' 
+      });
     }
     
     await Review.findByIdAndDelete(id);
-    console.log('✅ Review deleted successfully');
     
     res.json({ success: true, message: 'Review deleted successfully' });
   } catch (error) {
-    console.error('❌ Delete error:', error);
     next(error);
   }
 };
+
 exports.getReviewById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -172,8 +161,7 @@ exports.getReviewById = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Review not found' });
     }
     
-    // Check ownership (only user can see their own review, or allow public access)
-    if (review.userId && review.userId !== userId) {
+    if (review.userId && String(review.userId) !== String(userId)) {
       return res.status(403).json({ success: false, error: 'Unauthorized' });
     }
     
@@ -182,4 +170,3 @@ exports.getReviewById = async (req, res, next) => {
     next(error);
   }
 };
-
