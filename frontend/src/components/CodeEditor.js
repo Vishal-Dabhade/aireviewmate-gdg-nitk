@@ -28,7 +28,7 @@ const CodeEditor = ({ code, setCode, language, setLanguage, onReview, loading })
   onChange={(e) => setLanguage(e.target.value)}
   className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-cyan-500/30 rounded-lg text-sm sm:text-base font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-slate-900 text-cyan-400 hover:bg-slate-800 transition-colors cursor-pointer"
 >
-  <option value="">Auto-detect</option> {/* NEW */}
+ <option value="auto">Auto-detect</option>
   <option value="javascript">JavaScript</option>
   <option value="python">Python</option>
   <option value="java">Java</option>
