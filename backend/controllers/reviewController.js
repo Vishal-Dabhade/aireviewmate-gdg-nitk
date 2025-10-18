@@ -99,7 +99,8 @@ exports.getReviewHistory = async (req, res, next) => {
   try {
     const userId = req.user?.githubId;
     
-    // Show last 10 anonymous reviews + user's own reviews
+    // ✅ Logged in: Show their reviews + anonymous reviews
+    // ✅ Logged out: Show only anonymous reviews (last 20)
     const query = userId 
       ? { $or: [{ userId: String(userId) }, { userId: null }] }
       : { userId: null };
