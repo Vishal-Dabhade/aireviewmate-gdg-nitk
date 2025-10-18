@@ -24,26 +24,27 @@ const CodeEditor = ({ code, setCode, language, setLanguage, onReview, loading })
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
             {/* Language Dropdown */}
             <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-cyan-500/30 rounded-lg text-sm sm:text-base font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-slate-900 text-cyan-400 hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <option value="javascript">JavaScript</option>
-              <option value="python">Python</option>
-              <option value="java">Java</option>
-              <option value="cpp">C++</option>
-              <option value="c">C</option>
-              <option value="csharp">C#</option>
-              <option value="go">Go</option>
-              <option value="rust">Rust</option>
-              <option value="typescript">TypeScript</option>
-              <option value="kotlin">Kotlin</option>
-              <option value="dart">Dart</option>
-              <option value="swift">Swift</option>
-              <option value="php">PHP</option>
-              <option value="ruby">Ruby</option>
-              <option value="sql">SQL</option>
-            </select>
+  value={language}
+  onChange={(e) => setLanguage(e.target.value)}
+  className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-cyan-500/30 rounded-lg text-sm sm:text-base font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-slate-900 text-cyan-400 hover:bg-slate-800 transition-colors cursor-pointer"
+>
+  <option value="">Auto-detect</option> {/* NEW */}
+  <option value="javascript">JavaScript</option>
+  <option value="python">Python</option>
+  <option value="java">Java</option>
+  <option value="cpp">C++</option>
+  <option value="c">C</option>
+  <option value="csharp">C#</option>
+  <option value="go">Go</option>
+  <option value="rust">Rust</option>
+  <option value="typescript">TypeScript</option>
+  <option value="kotlin">Kotlin</option>
+  <option value="dart">Dart</option>
+  <option value="swift">Swift</option>
+  <option value="php">PHP</option>
+  <option value="ruby">Ruby</option>
+  <option value="sql">SQL</option>
+</select>
 
             {/* Clear Button */}
             {code.trim() && (
