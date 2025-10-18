@@ -35,15 +35,19 @@ export const AuthProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const fetchUser = async () => {
-    try {
-      const decoded = JSON.parse(atob(token.split('.')[1]));
-      const userData = await api.getUserInfo(decoded.login);
-      setUser(userData);
-    } catch (err) {
-      console.error('Failed to fetch user:', err);
-    }
-  };
+ const fetchUser = async () => {
+  try {
+    const decoded = JSON.parse(atob(token.split('.')[1]));
+    const userData = await api.getUserInfo(decoded.login);
+    // ✅ Merge GitHub API data with JWT decoded data
+    setUser({
+      ...userData,
+      githubId: decoded.githubId  // Add githubId from JWT
+    });
+  } catch (err) {
+    console.error('Failed to fetch user:', err);
+  }
+};
 
 const login = () => {
   window.location.href = `${process.env.REACT_APP_API_BASE_URL}/github/login`;
