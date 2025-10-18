@@ -27,22 +27,23 @@ async function reviewCodeWithAI(code, language = 'javascript') {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
 ; // or gemini-1.5-turbo depending on availability
 
-   const langText =
-  language === "auto"
-    ? "Analyze the following code. First detect the programming language automatically, then review it."
-    : `Analyze the following ${language} code and review it.`;
-
 const prompt = `
 You are an expert code reviewer.
-${langText}
 
-Respond ONLY with JSON:
+1) If the provided text clearly looks like source code, detect the correct language and review it.
+2) If the text does NOT look like code, do NOT convert it into code and do NOT fix it.
+   Instead, reply exactly in JSON form:
+   { "error": "No valid code detected" }
+
+Expected JSON response structure when code is valid:
 {
- "improvedCode": "...",
- "explanation": "...",
- "category": "Best Practices|Better Performance|Bug Fix"
+  "improvedCode": "...",
+  "explanation": "...",
+  "category": "Best Practices|Better Performance|Bug Fix"
 }
-Code:
+
+Here is the input:
+
 \`\`\`
 ${code}
 \`\`\`
