@@ -27,7 +27,15 @@ async function reviewCodeWithAI(code, language = 'javascript') {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
 ; // or gemini-1.5-turbo depending on availability
 
-    const prompt = `You are an expert code reviewer. Analyze the following ${language} code and provide improvements.
+   const langText =
+  language === "auto"
+    ? "Analyze the following code. First detect the programming language automatically, then review it."
+    : `Analyze the following ${language} code and review it.`;
+
+const prompt = `
+You are an expert code reviewer.
+${langText}
+
 Respond ONLY with JSON:
 {
  "improvedCode": "...",
@@ -35,9 +43,11 @@ Respond ONLY with JSON:
  "category": "Best Practices|Better Performance|Bug Fix"
 }
 Code:
-\`\`\`${language}
+\`\`\`
 ${code}
-\`\`\``;
+\`\`\`
+`;
+
 
     const result = await model.generateContent(prompt);
     let responseText = result.response.text().trim();

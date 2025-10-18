@@ -50,12 +50,12 @@ exports.reviewCode = async (req, res, next) => {
     }
 
     // Validate language only if provided
-    if (language && !ALLOWED_LANGUAGES.includes(language)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Unsupported language. Allowed: ${ALLOWED_LANGUAGES.join(', ')}` 
-      });
-    }
+  if (language !== "auto" && !ALLOWED_LANGUAGES.includes(language)) {
+  return res.status(400).json({
+    success: false,
+    error: `Unsupported language. Allowed: auto, ${ALLOWED_LANGUAGES.join(', ')}`
+  });
+}
 
     // Call AI (auto-detect if language not provided)
     let reviewResult;
