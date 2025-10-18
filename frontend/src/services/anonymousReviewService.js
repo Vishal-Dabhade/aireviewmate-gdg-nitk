@@ -5,11 +5,12 @@ const STORAGE_KEY = 'anonymous_reviews';
 
 const anonymousReviewService = {
   /**
-   * Get all anonymous reviews from localStorage
+   * Get all anonymous reviews from sessionStorage
+   * (cleared when browser/tab closes)
    */
   getReviews: () => {
     try {
-      const reviews = localStorage.getItem(STORAGE_KEY);
+      const reviews = sessionStorage.getItem(STORAGE_KEY);
       return reviews ? JSON.parse(reviews) : [];
     } catch (error) {
       console.error('Error reading anonymous reviews:', error);
@@ -18,7 +19,8 @@ const anonymousReviewService = {
   },
 
   /**
-   * Save a review to localStorage
+   * Save a review to sessionStorage
+   * (cleared when browser/tab closes)
    */
   saveReview: (review) => {
     try {
@@ -30,7 +32,7 @@ const anonymousReviewService = {
         isAnonymous: true
       };
       reviews.unshift(newReview); // Add to beginning
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(reviews));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(reviews));
       return newReview;
     } catch (error) {
       console.error('Error saving anonymous review:', error);
@@ -45,7 +47,7 @@ const anonymousReviewService = {
     try {
       const reviews = anonymousReviewService.getReviews();
       const filtered = reviews.filter(r => r._id !== id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
       return true;
     } catch (error) {
       console.error('Error deleting anonymous review:', error);
@@ -58,7 +60,7 @@ const anonymousReviewService = {
    */
   clearAll: () => {
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
       return true;
     } catch (error) {
       console.error('Error clearing anonymous reviews:', error);
