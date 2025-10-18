@@ -89,7 +89,8 @@ const HistoryTab = () => {
       {/* Review list */}
       {history.map((item) => {
         // Check if current user owns this review
-        const isOwner = token && user && item.userId === String(user.githubId);
+        const isOwner = !!(token && user && item.userId && 
+    String(item.userId) === String(user.githubId));
         
         return (
           <div key={item._id} className="relative group">
