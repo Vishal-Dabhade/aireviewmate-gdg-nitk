@@ -99,11 +99,12 @@ exports.getReviewHistory = async (req, res, next) => {
   try {
     const userId = req.user?.githubId;
     
-    // If logged in, get only their reviews
-    // If not logged in, get all reviews
-    const reviews = await Review.find(
-      userId ? { userId } : {}
-    )
+    // Show last 10 anonymous reviews + user's own reviews
+    const query = userId 
+      ? { $or: [{ userId: String(userId) }, { userId: null }] }
+      : { userId: null };
+    
+    const reviews = await Review.find(query)
       .sort({ createdAt: -1 })
       .limit(20)
       .select('-__v');
