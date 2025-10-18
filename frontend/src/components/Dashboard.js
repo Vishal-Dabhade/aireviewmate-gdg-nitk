@@ -18,7 +18,7 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
 
-  const { token, user, login, logout } = useAuth();
+  const { token } = useAuth();
    
   const handleReviewCode = async () => {
     if (!code.trim()) {
@@ -51,14 +51,8 @@ const Dashboard = () => {
 
   return (
     <>
-      {/* Full-width header with auth props */}
-      <Header 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab}
-        user={user}
-        login={login}
-        logout={logout}
-      />
+      {/* Full-width header */}
+      <Header activeTab={activeTab} setActiveTab={setActiveTab} />
       
       {/* Main content WITH padding and max-width constraint */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 lg:px-8 py-8 sm:py-12">

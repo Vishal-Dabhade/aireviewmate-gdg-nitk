@@ -45,13 +45,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async () => {
-    try {
-      await api.githubLogin(); // This will redirect automatically
-    } catch (err) {
-      console.error('Login failed:', err);
-    }
-  };
+const login = () => {
+  window.location.href = `${process.env.REACT_APP_API_BASE_URL}/github/login`;
+};
+
 
   const logout = () => {
     if (typeof window !== 'undefined') {

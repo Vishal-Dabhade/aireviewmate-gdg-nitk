@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 
 exports.githubLogin = (req, res) => {
   const authUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.GITHUB_CALLBACK_URL)}&scope=repo,user:email`;
-  res.json({ authUrl }); // Changed from redirectUri to authUrl
+  res.redirect(authUrl);; // Changed from redirectUri to authUrl
 };
 
 exports.githubCallback = async (req, res) => {
