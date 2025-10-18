@@ -1,21 +1,18 @@
-import React from 'react';
-import { Code, History, Terminal, Github, LogOut } from 'lucide-react';
-import { AuthContext } from '../context/AuthContext'; // adjust path
+import React from "react";
+import { Terminal, Code, History, Github, LogOut } from "lucide-react";
 
-const useAuth = () => React.useContext(AuthContext);
-
-const Header = ({ activeTab, setActiveTab }) => {
-  const { user, login, logout } = useAuth();
-
+const Header = ({ activeTab, setActiveTab, user, login, logout }) => {
   return (
-    <header className="bg-slate-950/90 backdrop-blur-xl border-b border-cyan-500/20 sticky top-0 z-50 shadow-2xl relative">
-      {/* Subtle gradient background layer */}
+    <header className="sticky top-0 w-full bg-slate-950/90 backdrop-blur-xl border-b border-cyan-500/20 z-50 shadow-2xl overflow-hidden">
+      
+      {/* ✅ FULL-WIDTH GRADIENT LAYER */}
       <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-purple-500/5 to-blue-500/5"></div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+      {/* ✅ CENTERED CONTENT */}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between h-auto sm:h-20 gap-4 sm:gap-0 py-3 sm:py-0">
           
-          {/* ---------- Left: Logo + Tabs ---------- */}
+          {/* ---------- Left Section ---------- */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 w-full sm:w-auto">
             
             {/* Logo */}
@@ -34,7 +31,7 @@ const Header = ({ activeTab, setActiveTab }) => {
               </div>
             </div>
 
-            {/* Navigation Tabs */}
+            {/* Tabs */}
             <nav className="flex flex-wrap gap-2 sm:gap-2 bg-slate-900/50 p-1.5 rounded-xl border border-slate-800 w-full sm:w-auto">
               <button
                 onClick={() => setActiveTab('review')}
@@ -62,7 +59,7 @@ const Header = ({ activeTab, setActiveTab }) => {
             </nav>
           </div>
 
-          {/* ---------- Right: User Info / GitHub Login ---------- */}
+          {/* ---------- Right Section ---------- */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 sm:mt-0 w-full sm:w-auto">
             {user ? (
               <>
