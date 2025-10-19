@@ -9,7 +9,7 @@ async function reviewCodeWithAI(code, language = 'auto') {
   if (useDummy) {
     return {
       originalCode: code,
-      improvedCode: `${code}\n// Fixed by AI ✨`,
+      improvedCode: code,
       explanation: 'This is a test improvement',
       category: 'Best Practices',
       language: language || 'auto-detected'
@@ -21,26 +21,21 @@ async function reviewCodeWithAI(code, language = 'auto') {
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
 
-    const prompt = `You are an expert code reviewer and software engineer specializing in code quality, performance optimization, and best practices across multiple programming languages.
+    const prompt = `You are an expert code reviewer. Analyze the provided code and return an improved version.
 
-TASK: Analyze the provided code snippet and provide comprehensive feedback.
+CRITICAL RULE: Return ONLY improved code with ZERO comments, ZERO documentation blocks, ZERO explanations in the code. Just clean working code.
 
-IMPORTANT RULES:
-1. First, verify if the input is valid source code. If it is NOT code (e.g., plain text, documentation, or random text), respond with: {"error": "No valid code detected"}
-2. If it IS code, automatically detect the programming language${language !== 'auto' ? ` (user indicated: ${language})` : ''}
-3. Provide a corrected/improved version of the code
-4. Focus on: code quality, readability, performance, security, and best practices
-5. Always respond with valid JSON only (no markdown formatting)
+If the input is NOT valid code, respond with: {"error": "No valid code detected"}
 
-RESPONSE FORMAT (when code is valid):
+RESPONSE FORMAT (ONLY JSON):
 {
-  "detectedLanguage": "javascript|python|java|cpp|c|csharp|go|rust|typescript|kotlin|dart|swift|php|ruby|sql|other",
-  "improvedCode": "improved code here with comments explaining changes",
-  "explanation": "detailed explanation of improvements (2-3 sentences)",
+  "detectedLanguage": "javascript|python|java|cpp|c|csharp|go|rust|typescript|kotlin|dart|swift|php|ruby|sql|html|css|xml|json|other",
+  "improvedCode": "CLEAN CODE HERE - NO COMMENTS AT ALL - NO DOCUMENTATION - JUST CODE",
+  "explanation": "Detailed explanation of improvements (put ALL explanations here, not in code)",
   "improvements": [
-    "improvement 1",
-    "improvement 2",
-    "improvement 3"
+    "Specific improvement 1",
+    "Specific improvement 2", 
+    "Specific improvement 3"
   ],
   "category": "Best Practices|Better Performance|Bug Fix|Security|Code Style",
   "severity": "minor|moderate|major"
@@ -51,22 +46,24 @@ CODE TO REVIEW:
 ${code}
 \`\`\`
 
-Remember: Respond ONLY with valid JSON. No extra text, no markdown code blocks.`;
+RULES:
+1. improvedCode must be 100% clean - NO COMMENTS
+2. improvedCode must be 100% clean - NO DOCUMENTATION
+3. improvedCode must be 100% clean - NO EXPLANATIONS
+4. ALL explanations go in the "explanation" field
+5. Return ONLY valid JSON with no markdown or extra text`;
 
     const result = await model.generateContent(prompt);
     let responseText = result.response.text().trim();
 
-    // Remove markdown if present
     responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
 
     const parsed = JSON.parse(responseText);
 
-    // Handle error case
     if (parsed.error) {
       throw new Error(parsed.error);
     }
 
-    // Validate and set defaults
     const validCategories = ['Best Practices', 'Better Performance', 'Bug Fix', 'Security', 'Code Style'];
     if (!validCategories.includes(parsed.category)) {
       parsed.category = 'Best Practices';
