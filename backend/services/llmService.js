@@ -2,8 +2,7 @@
 require('dotenv').config();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-let useDummy = false; // set to false when you want real Gemini to run
-
+let useDummy = false;
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function reviewCodeWithAI(code, language = 'auto') {
@@ -74,8 +73,8 @@ Remember: Respond ONLY with valid JSON. No extra text, no markdown code blocks.`
     }
 
     return {
-      originalCode: code,
       improvedCode: parsed.improvedCode,
+      originalCode: code,
       explanation: parsed.explanation,
       improvements: parsed.improvements || [],
       category: parsed.category,
