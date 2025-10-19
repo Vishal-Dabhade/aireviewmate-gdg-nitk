@@ -87,33 +87,6 @@ const FullScreenReviewModal = ({ review, onClose, token }) => {
               </div>
             )}
 
-            {/* Improved Code - Copy Ready */}
-            <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 rounded-2xl blur opacity-20"></div>
-              <div className="relative bg-slate-950/90 backdrop-blur-xl rounded-2xl border border-slate-800 p-4 sm:p-6">
-                <div className="flex items-center justify-between gap-2 sm:gap-3 mb-4 sm:mb-6">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center border border-green-500/30">
-                      <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
-                    </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-white">Improved Code (Ready to Use)</h3>
-                  </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(review.improvedCode);
-                      alert('Code copied to clipboard!');
-                    }}
-                    className="px-3 py-1 bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 rounded text-xs font-semibold text-green-400 transition-all"
-                  >
-                    Copy Code
-                  </button>
-                </div>
-                <pre className="bg-slate-900 border border-slate-800 text-green-400 p-3 sm:p-6 rounded-xl overflow-x-auto text-xs sm:text-sm font-mono leading-relaxed" style={{ minHeight: '300px', maxHeight: '600px' }}>
-                  <code>{review.improvedCode}</code>
-                </pre>
-              </div>
-            </div>
-
             {/* Code Comparison */}
             <div className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-2xl blur opacity-20"></div>
