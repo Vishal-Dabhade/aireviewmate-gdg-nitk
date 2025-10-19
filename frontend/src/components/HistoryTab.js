@@ -1,24 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, History, Clock, Trash2, LogIn, Sparkles } from 'lucide-react';
+import { Loader2, History, Clock, Trash2, LogIn, Sparkles, Download, Github } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import anonymousReviewService from '../services/anonymousReviewService';
 import CategoryBadge from './CategoryBadge';
+import ExportButton from './ExportButton';
+import PRModal from './PRModal';
 
 const HistoryTab = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedReviewForPR, setSelectedReviewForPR] = useState(null);
   const { token, user, login } = useAuth();
   
   const loadHistory = useCallback(async () => {
     setLoading(true);
     try {
       if (token) {
-        // Logged in: Load from database
         const data = await api.getReviewHistory(token);
         setHistory(data.data || []);
       } else {
-        // Anonymous: Load from localStorage
         const anonymousReviews = anonymousReviewService.getReviews();
         setHistory(anonymousReviews);
       }
@@ -39,20 +40,52 @@ const HistoryTab = () => {
     
     try {
       if (token) {
-        // Logged in: Delete from database
         await api.deleteReview(id, token);
         setHistory(prev => prev.filter(item => item._id !== id));
-        console.log('✅ Review deleted from database');
       } else {
-        // Anonymous: Delete from localStorage
         anonymousReviewService.deleteReview(id);
         setHistory(prev => prev.filter(item => item._id !== id));
-        console.log('✅ Anonymous review deleted from localStorage');
       }
     } catch (err) {
-      console.error('❌ Delete error:', err);
+      console.error('Delete error:', err);
       alert(`Failed to delete: ${err.message}`);
     }
+  };
+
+  const handleExport = (review) => {
+    const content = `
+AI CODE REVIEW REPORT
+=====================
+Language: ${review.language || review.detectedLanguage || 'N/A'}
+Category: ${review.category}
+Severity: ${review.severity || 'N/A'}
+Date: ${new Date(review.createdAt).toLocaleDateString()}
+
+ORIGINAL CODE:
+${review.originalCode}
+
+IMPROVED CODE:
+${review.improvedCode}
+
+EXPLANATION:
+${review.explanation}
+
+${review.improvements && review.improvements.length > 0 ? `IMPROVEMENTS:\n${review.improvements.map((imp, i) => `${i + 1}. ${imp}`).join('\n')}\n` : ''}
+
+METRICS:
+- Lines of Code: ${review.metrics?.linesOfCode || 'N/A'}
+- Complexity Score: ${review.metrics?.complexityScore || 'N/A'}/10
+- Quality Rating: ${review.metrics?.qualityRating || 'N/A'}
+- Issues Found: ${review.metrics?.issuesFound || 'N/A'}
+    `;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `code-review-${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (loading) {
@@ -88,7 +121,6 @@ const HistoryTab = () => {
           Review History {!token && <span className="text-sm text-gray-500">(Session Only)</span>}
         </h2>
         
-        {/* Login prompt for anonymous users */}
         {!token && (
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl blur opacity-50 group-hover:opacity-75 transition-opacity"></div>
@@ -108,9 +140,6 @@ const HistoryTab = () => {
 
       {/* Review list */}
       {history.map((item) => {
-        // ✅ Show delete button for ALL reviews (anonymous or logged-in user's own)
-        const canDelete = true;
-        
         return (
           <div key={item._id} className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-2xl blur opacity-0 group-hover:opacity-20 transition-opacity"></div>
@@ -136,22 +165,39 @@ const HistoryTab = () => {
                     {new Date(item.createdAt).toLocaleDateString()}
                   </span>
                   
-                  {/* Delete button - show for all reviews in current view */}
-                  {canDelete && (
+                  {/* Export button */}
+                  <button 
+                    onClick={() => handleExport(item)}
+                    className="text-cyan-400 hover:text-cyan-300 p-2 hover:bg-cyan-500/10 rounded-lg transition-all"
+                    title="Export review"
+                  >
+                    <Download className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+
+                  {/* Create PR button (only for logged-in users) */}
+                  {token && (
                     <button 
-                      onClick={() => handleDelete(item._id)} 
-                      className="text-red-400 hover:text-red-300 p-2 hover:bg-red-500/10 rounded-lg transition-all"
-                      title="Delete review"
+                      onClick={() => setSelectedReviewForPR(item)}
+                      className="text-purple-400 hover:text-purple-300 p-2 hover:bg-purple-500/10 rounded-lg transition-all"
+                      title="Create pull request"
                     >
-                      <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <Github className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                   )}
+
+                  {/* Delete button */}
+                  <button 
+                    onClick={() => handleDelete(item._id)} 
+                    className="text-red-400 hover:text-red-300 p-2 hover:bg-red-500/10 rounded-lg transition-all"
+                    title="Delete review"
+                  >
+                    <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
                 </div>
               </div>
 
               {/* Code Previews */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Original Code */}
                 <div>
                   <div className="text-sm font-semibold text-gray-400 mb-2 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-red-500"></div>
@@ -162,7 +208,6 @@ const HistoryTab = () => {
                   </pre>
                 </div>
 
-                {/* Improved Code */}
                 <div>
                   <div className="text-sm font-semibold text-gray-400 mb-2 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-green-500"></div>
@@ -173,11 +218,19 @@ const HistoryTab = () => {
                   </pre>
                 </div>
               </div>
-
             </div>
           </div>
         );
       })}
+
+      {/* PR Modal */}
+      {selectedReviewForPR && (
+        <PRModal 
+          review={selectedReviewForPR}
+          onClose={() => setSelectedReviewForPR(null)}
+          token={token}
+        />
+      )}
     </div>
   );
 };
