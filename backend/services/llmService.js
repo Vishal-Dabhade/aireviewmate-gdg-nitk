@@ -25,9 +25,17 @@ async function reviewCodeWithAI(code, language = 'auto') {
 
     const prompt = `You are an expert code reviewer. Analyze the provided code and return an improved version.
 
-CRITICAL RULE: Return ONLY improved code with ZERO comments, ZERO documentation blocks, ZERO explanations in the code. Just clean working code.
+CRITICAL RULES:
+1. Return ONLY improved code with ZERO comments, ZERO documentation blocks, ZERO explanations in the code
+2. Accept ANY code: complete functions, code snippets, single lines, incomplete code, pseudocode
+3. If code has syntax errors (like "int a = string"), FIX the error and explain it
+4. If code is just random text with no programming keywords, then respond with error
+5. NEVER refuse to review - always try to help improve the code
 
-If the input is NOT valid code, respond with: {"error": "No valid code detected"}
+EXAMPLES:
+- Input: int a = "hello" → Output: const a = "hello"; (fix type mismatch)
+- Input: functio test() → Output: function test() (fix typo)
+- Input: x = 5 → Output: const x = 5; (add const)
 
 RESPONSE FORMAT (ONLY JSON):
 {
@@ -94,6 +102,13 @@ CODE RULES:
 
   } catch (error) {
     console.error('Gemini AI error:', error.message);
+    console.error('Code that failed:', code.substring(0, 200)); // Log first 200 chars
+    
+    // If Gemini returns error JSON, parse it
+    if (error.message === 'No valid code detected') {
+      throw new Error('Please enter valid code (JavaScript, Python, etc.)');
+    }
+    
     throw new Error(
       error.message.includes('JSON')
         ? 'Failed to parse AI response'

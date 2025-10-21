@@ -1,5 +1,4 @@
 // src/services/api.js
-// ✅ Base URL of your backend API
 const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
 /**
@@ -7,8 +6,16 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL;
  */
 const handleResponse = async (response) => {
   const data = await response.json();
+  
+  console.log('📡 API Response:', {
+    status: response.status,
+    ok: response.ok,
+    data: data
+  });
+  
   if (!response.ok) {
     const errorMessage = data.error || data.message || 'Something went wrong';
+    console.error('❌ API Error:', errorMessage);
     throw new Error(errorMessage);
   }
   return data;
@@ -16,11 +23,10 @@ const handleResponse = async (response) => {
 
 /**
  * 🌐 Centralized API service
- * Handles all backend calls in one place
  */
 const api = {
   /**
-   * 🔹 GitHub Login - starts OAuth process
+   * 🔹 GitHub Login
    */
   githubLogin: async () => {
     const response = await fetch(`${API_BASE}/github/login`);
@@ -29,7 +35,6 @@ const api = {
 
   /**
    * 🔹 Get user info by GitHub username or ID
-   * @param {string} username - GitHub username
    */
   getUserInfo: async (username) => {
     const response = await fetch(`${API_BASE}/github?username=${username}`);
@@ -38,33 +43,62 @@ const api = {
 
   /**
    * 🔹 Review code by sending it to backend
-   * @param {string} code - user's code
-   * @param {string} language - code language (e.g., 'cpp', 'python', etc.)
-   * @param {string} token - JWT token for authentication
-   * @param {AbortSignal} signal - ✅ NEW: Abort signal for request cancellation
    */
   reviewCode: async (code, language, token, signal = null) => {
-    const options = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` })
-      },
-      body: JSON.stringify({ code, language }),
-    };
+    console.log('🚀 Sending review request:', {
+      codeLength: code.length,
+      language: language,
+      hasToken: !!token,
+      hasSignal: !!signal
+    });
 
-    // ✅ NEW: Add abort signal if provided
-    if (signal) {
-      options.signal = signal;
+    try {
+      const options = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({ code, language }),
+      };
+
+      // ✅ Add abort signal if provided (and it's valid)
+      if (signal && signal instanceof AbortSignal) {
+        options.signal = signal;
+      }
+
+      // ✅ Add 45-second timeout if no signal provided
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+      if (!options.signal) {
+        options.signal = controller.signal;
+      }
+
+      const response = await fetch(`${API_BASE}/review`, options);
+      clearTimeout(timeoutId);
+      
+      return handleResponse(response);
+      
+    } catch (error) {
+      // ✅ Better error messages
+      if (error.name === 'AbortError') {
+        console.log('⏹️ Request cancelled');
+        throw error;
+      }
+      
+      if (error.message.includes('fetch')) {
+        console.error('🌐 Network Error:', error);
+        throw new Error('Network error - check if backend is running');
+      }
+      
+      console.error('❌ Review Error:', error);
+      throw new Error(`Failed to analyze code: ${error.message}`);
     }
-
-    const response = await fetch(`${API_BASE}/review`, options);
-    return handleResponse(response);
   },
 
   /**
    * 🔹 Get all previous code reviews (history)
-   * @param {string} token - JWT token for authentication
    */
   getReviewHistory: async (token) => {
     const headers = {};
@@ -78,9 +112,7 @@ const api = {
   },
 
   /**
-   * 🔹 Delete a specific review using its ID
-   * @param {string} id - review ID
-   * @param {string} token - JWT token for authentication
+   * 🔹 Delete a specific review
    */
   deleteReview: async (id, token) => {
     const response = await fetch(`${API_BASE}/review/${id}`, {
@@ -94,7 +126,6 @@ const api = {
 
   /**
    * 🔹 Get user's GitHub repositories
-   * @param {string} token - JWT token for authentication
    */
   getRepositories: async (token) => {
     const response = await fetch(`${API_BASE}/pr/repositories`, {
@@ -106,9 +137,7 @@ const api = {
   },
 
   /**
-   * 🔹 Create a Pull Request with AI-improved code
-   * @param {object} data - { reviewId, owner, repo, filePath, baseBranch }
-   * @param {string} token - JWT token for authentication
+   * 🔹 Create a Pull Request
    */
   createPullRequest: async (data, token) => {
     const response = await fetch(`${API_BASE}/pr/create-pr`, {

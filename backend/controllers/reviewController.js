@@ -38,8 +38,14 @@ function calculateMetrics(code) {
 // ✅ Review code endpoint
 exports.reviewCode = async (req, res, next) => {
   try {
-    const { code, language } = req.body; // language optional
+    const { code, language } = req.body;
     const userId = req.user?.githubId;
+
+    console.log('📥 Review request:', { 
+      codeLength: code?.length, 
+      language, 
+      userId: userId || 'anonymous' 
+    });
 
     if (!code || code.trim().length === 0) {
       return res.status(400).json({ success: false, error: 'Code is required' });
@@ -49,24 +55,25 @@ exports.reviewCode = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Code too long (max 50,000 chars)' });
     }
 
-    // Validate language only if provided
-  if (language !== "auto" && !ALLOWED_LANGUAGES.includes(language)) {
-  return res.status(400).json({
-    success: false,
-    error: `Unsupported language. Allowed: auto, ${ALLOWED_LANGUAGES.join(', ')}`
-  });
-}
+    // ✅ FIXED: If language is "auto" or not in allowed list, pass undefined to let Gemini detect
+    let languageToPass = undefined;
+    if (language && language !== "auto" && ALLOWED_LANGUAGES.includes(language)) {
+      languageToPass = language;
+    }
 
-    // Call AI (auto-detect if language not provided)
+    console.log('🤖 Calling Gemini with language:', languageToPass || 'auto-detect');
+
+    // Call AI
     let reviewResult;
     try {
-      reviewResult = await reviewCodeWithAI(code, language || undefined);
+      reviewResult = await reviewCodeWithAI(code, languageToPass);
     } catch (error) {
-      console.error('AI Review Error:', error);
+      console.error('❌ AI Review Error:', error);
       return res.status(500).json({ success: false, error: 'Failed to analyze code with AI' });
     }
 
     if (!reviewResult || !reviewResult.improvedCode || !reviewResult.explanation) {
+      console.error('⚠️ Invalid AI response:', reviewResult);
       return res.status(500).json({ success: false, error: 'Invalid AI response' });
     }
 
@@ -81,12 +88,17 @@ exports.reviewCode = async (req, res, next) => {
         improvedCode: reviewResult.improvedCode,
         explanation: reviewResult.explanation,
         category: reviewResult.category,
-        language: language || 'auto-detected', // store what AI detected
+        language: reviewResult.detectedLanguage || 'unknown',
         metrics,
         createdAt: new Date()
       });
       savedReview = await review.save();
     }
+
+    console.log('✅ Review complete:', { 
+      detectedLanguage: reviewResult.detectedLanguage,
+      framework: reviewResult.framework 
+    });
 
     res.json({
       success: true,
@@ -95,11 +107,14 @@ exports.reviewCode = async (req, res, next) => {
         metrics,
         _id: savedReview?._id || null,
         originalCode: code,
-        language: language || 'auto-detected',
+        language: reviewResult.detectedLanguage || 'auto-detected',
+        detectedLanguage: reviewResult.detectedLanguage,
+        framework: reviewResult.framework,
         createdAt: new Date()
       }
     });
   } catch (error) {
+    console.error('💥 Server Error:', error);
     next(error);
   }
 };
