@@ -22,7 +22,8 @@ const Dashboard = () => {
 
   const { token } = useAuth();
 
-  const handleReviewCode = async (signal = null) => {
+  // ✅ FIXED: Wrapped in useCallback to prevent dependency issues
+  const handleReviewCode = React.useCallback(async (signal = null) => {
     if (!code.trim()) {
       setError('Please enter some code to review');
       return;
@@ -33,14 +34,13 @@ const Dashboard = () => {
     setReview(null);
 
     try {
-      // ✅ Always use 'auto' - let LLM detect language
       const data = await api.reviewCode(code, 'auto', token, signal);
       
       if (!token) {
         const savedReview = anonymousReviewService.saveReview({
           ...data.data,
           originalCode: code,
-          language: data.data.detectedLanguage || 'auto' // ✅ Save detected language
+          language: data.data.detectedLanguage || 'auto'
         });
         setReview(savedReview);
       } else {
@@ -57,21 +57,24 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [code, token]); // ✅ Added dependencies
 
-  // Auto-review with debounce
+  // ✅ FIXED: Auto-review with debounce
   useEffect(() => {
     if (reviewMode !== 'auto' || !code.trim()) {
       return;
     }
 
+    // Cancel previous request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
+    // Create new abort controller
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
+    // Debounce timer (2 seconds)
     const timer = setTimeout(() => {
       handleReviewCode(controller.signal);
     }, 2000);
@@ -82,7 +85,7 @@ const Dashboard = () => {
         abortControllerRef.current.abort();
       }
     };
-  }, [code, reviewMode]);
+  }, [code, reviewMode, handleReviewCode]); // ✅ Added handleReviewCode as dependency
 
   const closeModal = () => setShowModal(false);
 
@@ -121,7 +124,7 @@ const Dashboard = () => {
                 <CodeEditor 
                   code={code} 
                   setCode={setCode} 
-                  onReview={handleReviewCode} 
+                  onReview={() => handleReviewCode(null)}
                   loading={loading}
                   reviewMode={reviewMode}
                   setReviewMode={setReviewMode}
