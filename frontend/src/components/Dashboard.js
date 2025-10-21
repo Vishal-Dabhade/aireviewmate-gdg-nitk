@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './Header';
 import CodeEditor from './CodeEditor';
 import ErrorAlert from './ErrorAlert';
@@ -13,48 +13,76 @@ import anonymousReviewService from '../services/anonymousReviewService';
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('review');
   const [code, setCode] = useState('');
-  const [language, setLanguage] = useState('javascript');
   const [review, setReview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [reviewMode, setReviewMode] = useState('manual');
+  const abortControllerRef = useRef(null);
 
   const { token } = useAuth();
-   
- 
 
-const handleReviewCode = async () => {
-  if (!code.trim()) {
-    setError('Please enter some code to review');
-    return;
-  }
-
-  setLoading(true);
-  setError('');
-  setReview(null);
-
-  try {
-    const data = await api.reviewCode(code, language, token);
-    
-    // ✅ If anonymous (no token), save to localStorage
-    if (!token) {
-      const savedReview = anonymousReviewService.saveReview({
-        ...data.data,
-        originalCode: code,
-        language: language
-      });
-      setReview(savedReview);
-    } else {
-      setReview(data.data);
+  const handleReviewCode = async (signal = null) => {
+    if (!code.trim()) {
+      setError('Please enter some code to review');
+      return;
     }
-    
-    setShowModal(true);
-  } catch (err) {
-    setError(err.message || 'Failed to review code');
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+    setError('');
+    setReview(null);
+
+    try {
+      // ✅ Always use 'auto' - let LLM detect language
+      const data = await api.reviewCode(code, 'auto', token, signal);
+      
+      if (!token) {
+        const savedReview = anonymousReviewService.saveReview({
+          ...data.data,
+          originalCode: code,
+          language: data.data.detectedLanguage || 'auto' // ✅ Save detected language
+        });
+        setReview(savedReview);
+      } else {
+        setReview(data.data);
+      }
+      
+      setShowModal(true);
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        console.log('Request cancelled - user is still typing');
+        return;
+      }
+      setError(err.message || 'Failed to review code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Auto-review with debounce
+  useEffect(() => {
+    if (reviewMode !== 'auto' || !code.trim()) {
+      return;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    const timer = setTimeout(() => {
+      handleReviewCode(controller.signal);
+    }, 2000);
+
+    return () => {
+      clearTimeout(timer);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [code, reviewMode]);
 
   const closeModal = () => setShowModal(false);
 
@@ -66,14 +94,11 @@ const handleReviewCode = async () => {
 
   return (
     <>
-      {/* Full-width header */}
       <Header activeTab={activeTab} setActiveTab={setActiveTab} />
       
-      {/* Main content WITH padding and max-width constraint */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 lg:px-8 py-8 sm:py-12">
         {activeTab === 'review' ? (
           <>
-            {/* Intro Card */}
             <div className="relative mb-6 sm:mb-8 group">
               <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 rounded-2xl blur-xl opacity-20 group-hover:opacity-50 transition-opacity"></div>
               <div className="relative bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 rounded-2xl p-6 sm:p-8 text-white shadow-2xl">
@@ -91,16 +116,15 @@ const handleReviewCode = async () => {
               </div>
             </div>
             
-            {/* Editor + Results */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
               <div className="space-y-4">
                 <CodeEditor 
                   code={code} 
                   setCode={setCode} 
-                  language={language} 
-                  setLanguage={setLanguage} 
                   onReview={handleReviewCode} 
-                  loading={loading} 
+                  loading={loading}
+                  reviewMode={reviewMode}
+                  setReviewMode={setReviewMode}
                 />
                 <ErrorAlert message={error} />
               </div>

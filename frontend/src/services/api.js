@@ -41,16 +41,24 @@ const api = {
    * @param {string} code - user's code
    * @param {string} language - code language (e.g., 'cpp', 'python', etc.)
    * @param {string} token - JWT token for authentication
+   * @param {AbortSignal} signal - ✅ NEW: Abort signal for request cancellation
    */
-  reviewCode: async (code, language, token) => {
-    const response = await fetch(`${API_BASE}/review`, {
+  reviewCode: async (code, language, token, signal = null) => {
+    const options = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` })
       },
       body: JSON.stringify({ code, language }),
-    });
+    };
+
+    // ✅ NEW: Add abort signal if provided
+    if (signal) {
+      options.signal = signal;
+    }
+
+    const response = await fetch(`${API_BASE}/review`, options);
     return handleResponse(response);
   },
 

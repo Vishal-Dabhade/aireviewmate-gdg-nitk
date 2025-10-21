@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, CheckCircle } from 'lucide-react';
+import { Zap, CheckCircle, Code2 } from 'lucide-react';
 
 const ReviewResults = ({ review }) => {
   if (!review) {
@@ -20,6 +20,45 @@ const ReviewResults = ({ review }) => {
     );
   }
 
+  // ✅ Helper to format language names nicely
+  const formatLanguage = (lang) => {
+    const languageMap = {
+      'javascript': 'JavaScript',
+      'typescript': 'TypeScript',
+      'python': 'Python',
+      'java': 'Java',
+      'cpp': 'C++',
+      'c': 'C',
+      'csharp': 'C#',
+      'go': 'Go',
+      'rust': 'Rust',
+      'kotlin': 'Kotlin',
+      'dart': 'Dart',
+      'swift': 'Swift',
+      'php': 'PHP',
+      'ruby': 'Ruby',
+      'sql': 'SQL',
+      'html': 'HTML',
+      'css': 'CSS',
+      'xml': 'XML',
+      'json': 'JSON'
+    };
+    return languageMap[lang?.toLowerCase()] || lang || 'Unknown';
+  };
+
+  // ✅ NEW: Build display text with framework
+  const getLanguageDisplay = () => {
+    const lang = formatLanguage(review.detectedLanguage);
+    const framework = review.framework;
+    
+    // If framework exists and is not "None" or "Other"
+    if (framework && framework !== 'None' && framework !== 'Other') {
+      return `${framework} (${lang})`;
+    }
+    
+    return lang;
+  };
+
   return (
     <div className="relative group">
       <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 via-emerald-500 to-cyan-500 rounded-2xl blur opacity-30 animate-pulse"></div>
@@ -29,7 +68,19 @@ const ReviewResults = ({ review }) => {
           <div className="w-20 sm:w-24 h-20 sm:h-24 bg-gradient-to-br from-green-500/20 to-cyan-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 border border-green-500/30">
             <CheckCircle className="w-10 sm:w-12 h-10 sm:h-12 text-green-400" />
           </div>
+          
           <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">Review Complete!</h3>
+          
+          {/* ✅ NEW: Show detected language + framework */}
+          {review.detectedLanguage && (
+            <div className="flex items-center justify-center gap-2 mb-3 sm:mb-4">
+              <Code2 className="w-4 h-4 text-cyan-400" />
+              <span className="text-sm text-gray-400">
+                Detected: <span className="text-cyan-400 font-semibold">{getLanguageDisplay()}</span>
+              </span>
+            </div>
+          )}
+          
           <p className="text-gray-400 text-sm sm:text-base mb-4 sm:mb-8">Your code has been analyzed successfully</p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
