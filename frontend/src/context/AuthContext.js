@@ -18,41 +18,89 @@ export const AuthProvider = ({ children }) => {
   });
 
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  // ✅ Handle token from URL and fetch user
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlToken = urlParams.get('token');
+    const handleAuth = async () => {
+      // Check for token in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlToken = urlParams.get('token');
+      const urlError = urlParams.get('error');
 
-    if (urlToken) {
-      if (typeof window !== 'undefined') {
-        window.localStorage?.setItem('github_token', urlToken);
+      if (urlError) {
+        console.error('❌ OAuth error:', urlError);
+        alert('Authentication failed: ' + urlError);
+        window.history.replaceState({}, document.title, '/');
+        setLoading(false);
+        return;
       }
-      setToken(urlToken);
-      window.history.replaceState({}, document.title, '/');
+
+      if (urlToken) {
+        console.log('✅ Token received from GitHub OAuth');
+        
+        if (typeof window !== 'undefined') {
+          window.localStorage?.setItem('github_token', urlToken);
+        }
+        
+        setToken(urlToken);
+        
+        // Clean URL
+        window.history.replaceState({}, document.title, '/');
+      }
+
+      // Fetch user if token exists
+      if (urlToken || token) {
+        await fetchUser(urlToken || token);
+      } else {
+        setLoading(false);
+      }
+    };
+
+    handleAuth();
+  }, []); // Only run once on mount
+
+  const fetchUser = async (authToken = token) => {
+    if (!authToken) {
+      setLoading(false);
+      return;
     }
 
-    if (token) fetchUser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+    try {
+      console.log('🔄 Fetching user data...');
+      
+      // Decode JWT to get username
+      const decoded = JSON.parse(atob(authToken.split('.')[1]));
+      console.log('📋 Decoded JWT:', decoded);
 
- const fetchUser = async () => {
-  try {
-    const decoded = JSON.parse(atob(token.split('.')[1]));
-    const userData = await api.getUserInfo(decoded.login);
-    // ✅ Merge GitHub API data with JWT decoded data
-    setUser({
-      ...userData,
-      githubId: decoded.githubId  // Add githubId from JWT
-    });
-  } catch (err) {
-    console.error('Failed to fetch user:', err);
-  }
-};
+      // Fetch full user data from GitHub API
+      const userData = await api.getUserInfo(decoded.login);
+      
+      // ✅ Merge GitHub API data with JWT decoded data
+      setUser({
+        ...userData,
+        githubId: decoded.githubId,
+        login: decoded.login
+      });
 
-const login = () => {
-  window.location.href = `${process.env.REACT_APP_API_BASE_URL}/github/login`;
-};
+      console.log('✅ User loaded:', decoded.login);
+    } catch (err) {
+      console.error('❌ Failed to fetch user:', err);
+      
+      // Clear invalid token
+      if (typeof window !== 'undefined') {
+        window.localStorage?.removeItem('github_token');
+      }
+      setToken(null);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const login = () => {
+    window.location.href = `${process.env.REACT_APP_API_BASE_URL}/github/login`;
+  };
 
   const logout = () => {
     if (typeof window !== 'undefined') {
@@ -63,7 +111,7 @@ const login = () => {
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout }}>
+    <AuthContext.Provider value={{ token, user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

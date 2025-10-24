@@ -2,22 +2,32 @@
 const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
 /**
+ * Get token from localStorage
+ */
+const getToken = () => {
+  if (typeof window !== 'undefined') {
+    return window.localStorage?.getItem('github_token') || null;
+  }
+  return null;
+};
+
+/**
  * Common helper to handle all API responses
  */
 const handleResponse = async (response) => {
   const data = await response.json();
-  
   console.log('📡 API Response:', {
     status: response.status,
     ok: response.ok,
     data: data
   });
-  
+
   if (!response.ok) {
     const errorMessage = data.error || data.message || 'Something went wrong';
     console.error('❌ API Error:', errorMessage);
     throw new Error(errorMessage);
   }
+
   return data;
 };
 
@@ -29,22 +39,34 @@ const api = {
    * 🔹 GitHub Login
    */
   githubLogin: async () => {
-    const response = await fetch(`${API_BASE}/github/login`);
-    return handleResponse(response);
+    // Redirect to backend GitHub login
+    window.location.href = `${API_BASE}/github/login`;
   },
 
   /**
    * 🔹 Get user info by GitHub username or ID
+   * ✅ NOW SENDS AUTH TOKEN
    */
   getUserInfo: async (username) => {
-    const response = await fetch(`${API_BASE}/github?username=${username}`);
+    const token = getToken();
+    const headers = {};
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE}/github?username=${username}`, {
+      headers
+    });
     return handleResponse(response);
   },
 
   /**
    * 🔹 Review code by sending it to backend
    */
-  reviewCode: async (code, language, token, signal = null) => {
+  reviewCode: async (code, language, signal = null) => {
+    const token = getToken();
+    
     console.log('🚀 Sending review request:', {
       codeLength: code.length,
       language: language,
@@ -77,21 +99,20 @@ const api = {
 
       const response = await fetch(`${API_BASE}/review`, options);
       clearTimeout(timeoutId);
-      
+
       return handleResponse(response);
-      
     } catch (error) {
       // ✅ Better error messages
       if (error.name === 'AbortError') {
         console.log('⏹️ Request cancelled');
         throw error;
       }
-      
+
       if (error.message.includes('fetch')) {
         console.error('🌐 Network Error:', error);
         throw new Error('Network error - check if backend is running');
       }
-      
+
       console.error('❌ Review Error:', error);
       throw new Error(`Failed to analyze code: ${error.message}`);
     }
@@ -100,11 +121,14 @@ const api = {
   /**
    * 🔹 Get all previous code reviews (history)
    */
-  getReviewHistory: async (token) => {
+  getReviewHistory: async () => {
+    const token = getToken();
     const headers = {};
+    
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
+
     const response = await fetch(`${API_BASE}/review/history`, {
       headers
     });
@@ -114,7 +138,13 @@ const api = {
   /**
    * 🔹 Delete a specific review
    */
-  deleteReview: async (id, token) => {
+  deleteReview: async (id) => {
+    const token = getToken();
+    
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
     const response = await fetch(`${API_BASE}/review/${id}`, {
       method: 'DELETE',
       headers: {
@@ -127,7 +157,13 @@ const api = {
   /**
    * 🔹 Get user's GitHub repositories
    */
-  getRepositories: async (token) => {
+  getRepositories: async () => {
+    const token = getToken();
+    
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
     const response = await fetch(`${API_BASE}/pr/repositories`, {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -139,7 +175,13 @@ const api = {
   /**
    * 🔹 Create a Pull Request
    */
-  createPullRequest: async (data, token) => {
+  createPullRequest: async (data) => {
+    const token = getToken();
+    
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
     const response = await fetch(`${API_BASE}/pr/create-pr`, {
       method: 'POST',
       headers: {
