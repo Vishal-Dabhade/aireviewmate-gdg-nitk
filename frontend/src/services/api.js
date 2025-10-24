@@ -25,6 +25,15 @@ const handleResponse = async (response) => {
   if (!response.ok) {
     const errorMessage = data.error || data.message || 'Something went wrong';
     console.error('❌ API Error:', errorMessage);
+    
+    // ✅ If 401, clear token and redirect to login
+    if (response.status === 401) {
+      console.log('🔒 Unauthorized - clearing token');
+      if (typeof window !== 'undefined') {
+        window.localStorage?.removeItem('github_token');
+      }
+    }
+    
     throw new Error(errorMessage);
   }
 
@@ -49,15 +58,28 @@ const api = {
    */
   getUserInfo: async (username) => {
     const token = getToken();
-    const headers = {};
     
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    console.log('🔍 getUserInfo called:', {
+      username,
+      hasToken: !!token,
+      tokenPreview: token ? token.substring(0, 20) + '...' : 'none'
+    });
+
+    // ✅ CRITICAL: Don't call API without token
+    if (!token) {
+      console.error('❌ No token available for getUserInfo');
+      throw new Error('Authentication required');
     }
+
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
 
     const response = await fetch(`${API_BASE}/github?username=${username}`, {
       headers
     });
+    
     return handleResponse(response);
   },
 
@@ -123,11 +145,14 @@ const api = {
    */
   getReviewHistory: async () => {
     const token = getToken();
-    const headers = {};
     
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (!token) {
+      throw new Error('Authentication required');
     }
+
+    const headers = {
+      'Authorization': `Bearer ${token}`
+    };
 
     const response = await fetch(`${API_BASE}/review/history`, {
       headers
