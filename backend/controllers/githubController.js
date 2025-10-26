@@ -64,7 +64,7 @@ exports.githubCallback = async (req, res) => {
   }
 };
 
-// ✅ FIXED: Now uses the user's GitHub token from JWT
+
 exports.getUserInfo = async (req, res) => {
   const { username } = req.query;
   

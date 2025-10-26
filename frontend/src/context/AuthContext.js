@@ -6,8 +6,8 @@ import api from '../services/api';
 export const AuthContext = createContext();
 
 /**
- * 🧠 AuthProvider component
- * Wrap your entire app with this to share auth state globally
+ *  AuthProvider component
+ * 
  */
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => {

@@ -55,7 +55,7 @@ exports.reviewCode = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Code too long (max 50,000 chars)' });
     }
 
-    // ✅ FIXED: If language is "auto" or not in allowed list, pass undefined to let Gemini detect
+    
     let languageToPass = undefined;
     if (language && language !== "auto" && ALLOWED_LANGUAGES.includes(language)) {
       languageToPass = language;
