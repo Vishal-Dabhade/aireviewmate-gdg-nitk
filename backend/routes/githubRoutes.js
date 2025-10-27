@@ -10,5 +10,4 @@ router.get('/', githubController.getUserInfo);
 
 
 
-
 module.exports = router;
